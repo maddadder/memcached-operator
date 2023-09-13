@@ -29,13 +29,13 @@ kubectl apply -f config/samples/
 2. Build and push your image to the location specified by `IMG`:
 
 ```sh
-make docker-build docker-push IMG=master-0.local:32000/memcached-operator:v0.0.2
+make docker-build docker-push IMG=master-0.local:32000/memcached-operator:v0.0.11
 ```
 
 3. Deploy the controller to the cluster with the image specified by `IMG`:
 
 ```sh
-make deploy IMG=master-0.local:32000/memcached-operator:v0.0.2
+make deploy IMG=master-0.local:32000/memcached-operator:v0.0.11
 ```
 
 ### Uninstall CRDs
@@ -80,6 +80,7 @@ make run
 If you are editing the API definitions, generate the manifests such as CRs or CRDs using:
 
 ```sh
+make generate
 make manifests
 ```
 
