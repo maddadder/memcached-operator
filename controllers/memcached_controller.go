@@ -231,6 +231,29 @@ func (r *MemcachedReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
+	// Create or update the Service
+	service := &corev1.Service{}
+	err = r.Get(ctx, types.NamespacedName{Name: memcached.Name + "-service", Namespace: memcached.Namespace}, service)
+	if err != nil && apierrors.IsNotFound(err) {
+		// Service does not exist, create it
+		service, err = r.serviceForMemcached(memcached)
+		if err != nil {
+			log.Error(err, "Failed to define new Service resource for Memcached")
+			return ctrl.Result{}, err
+		}
+
+		log.Info("Creating a new Service",
+			"Service.Namespace", service.Namespace, "Service.Name", service.Name)
+		if err := r.Create(ctx, service); err != nil {
+			log.Error(err, "Failed to create Service",
+				"Service.Namespace", service.Namespace, "Service.Name", service.Name)
+			return ctrl.Result{}, err
+		}
+	} else if err != nil {
+		log.Error(err, "Failed to get Service")
+		return ctrl.Result{}, err
+	}
+
 	// The CRD API is defining that the Memcached type, have a MemcachedSpec.Size field
 	// to set the quantity of Deployment instances is the desired state on the cluster.
 	// Therefore, the following code will ensure the Deployment size is the same as defined
@@ -301,6 +324,34 @@ func (r *MemcachedReconciler) doFinalizerOperationsForMemcached(cr *cachev1alpha
 		fmt.Sprintf("Custom Resource %s is being deleted from the namespace %s",
 			cr.Name,
 			cr.Namespace))
+}
+
+func (r *MemcachedReconciler) serviceForMemcached(
+	memcached *cachev1alpha1.Memcached) (*corev1.Service, error) {
+	ls := labelsForMemcached(memcached.Name)
+	service := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      memcached.Name + "-service",
+			Namespace: memcached.Namespace,
+		},
+		Spec: corev1.ServiceSpec{
+			Selector: ls,
+			Ports: []corev1.ServicePort{
+				{
+					Name:     "memcached",
+					Port:     memcached.Spec.ContainerPort,
+					Protocol: corev1.ProtocolTCP,
+				},
+			},
+		},
+	}
+
+	// Set the ownerRef for the Service
+	if err := ctrl.SetControllerReference(memcached, service, r.Scheme); err != nil {
+		return nil, err
+	}
+
+	return service, nil
 }
 
 // deploymentForMemcached returns a Memcached Deployment object
