@@ -1,6 +1,7 @@
 # memcached-operator
 
-1. Follow Instructions [Here](https://sdk.operatorframework.io/docs/installation/) to install the operator-sdk
+1. Install Go [here](https://go.dev/doc/install)
+1. Install operator-sdk [Here](https://sdk.operatorframework.io/docs/installation/)
 1. Run the following
    ```
    mkdir memcached-operator
